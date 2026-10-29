@@ -18,6 +18,11 @@ class _NewsPageState extends State<NewsPage> {
 
   String _selectedCategory = 'general';
 
+  // local search
+  final TextEditingController _localFilterController = TextEditingController();
+
+  String _localKeyword = '';
+
   final List<Map<String, String>> _categories = [
     {'label': 'Umum', 'value': 'general'},
     {'label': 'Bisnis', 'value': 'business'},
@@ -48,9 +53,24 @@ class _NewsPageState extends State<NewsPage> {
     });
   }
 
+  List<Article> filterByTitle(List<Article> articles, String keyword) {
+    final query = keyword.trim().toLowerCase();
+
+    // Jika kata kunci kosong, tampilkan semua berita.
+    if (query.isEmpty) {
+      return articles;
+    }
+
+    // Saring berita berdasarkan judul.
+    return articles.where((article) {
+      return article.title.toLowerCase().contains(query);
+    }).toList();
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
+    _localFilterController.dispose();
     super.dispose();
   }
 
@@ -68,6 +88,7 @@ class _NewsPageState extends State<NewsPage> {
       appBar: AppBar(title: const Text('News App'), centerTitle: true),
       body: Column(
         children: [
+          // Pencarian
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(
@@ -88,6 +109,7 @@ class _NewsPageState extends State<NewsPage> {
             ),
           ),
 
+          // Filter berdasarkan kategori
           SizedBox(
             height: 56,
             child: ListView(
@@ -107,6 +129,35 @@ class _NewsPageState extends State<NewsPage> {
                   ),
                 );
               }).toList(),
+            ),
+          ),
+
+          // Filter lokal berdasarkan judul
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: TextField(
+              controller: _localFilterController,
+              decoration: InputDecoration(
+                labelText: 'Filter judul berita',
+                hintText: 'Contoh: AI, technology, sports',
+                prefixIcon: const Icon(Icons.filter_alt),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _localFilterController.clear();
+
+                    setState(() {
+                      _localKeyword = '';
+                    });
+                  },
+                ),
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _localKeyword = value;
+                });
+              },
             ),
           ),
 
@@ -170,12 +221,17 @@ class _NewsPageState extends State<NewsPage> {
                   );
                 }
 
+                final List<Article> filteredArticles = filterByTitle(
+                  articles,
+                  _localKeyword,
+                );
+
                 // 5. Tampilkan daftar berita
                 return ListView.builder(
                   padding: const EdgeInsets.all(12),
-                  itemCount: articles.length,
+                  itemCount: filteredArticles.length,
                   itemBuilder: (context, index) {
-                    final article = articles[index];
+                    final article = filteredArticles[index];
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
