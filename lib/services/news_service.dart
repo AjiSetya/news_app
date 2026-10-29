@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/article.dart';
 
 class NewsService {
-  static const String _apiKey = 'f86fdd4cbe6b4eac8791fb4b96bb1ff6';
+  static const String _apiKey = 'YOUR_API_KEY';
 
   Future<List<Article>> fetchTopHeadlines({String category = 'general'}) async {
     //.       | base url  |  endpoint      | query parameters

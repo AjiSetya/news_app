@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/article.dart';
 import '../services/news_service.dart';
+import 'article_detail_page.dart';
 
 class NewsPage extends StatefulWidget {
   const NewsPage({super.key});
@@ -214,17 +215,17 @@ class _NewsPageState extends State<NewsPage> {
                 // 3. Data berhasil diterima
                 final List<Article> articles = snapshot.data ?? [];
 
-                // 4. Data kosong
-                if (articles.isEmpty) {
-                  return const Center(
-                    child: Text('Tidak ada berita tersedia.'),
-                  );
-                }
-
                 final List<Article> filteredArticles = filterByTitle(
                   articles,
                   _localKeyword,
                 );
+
+                // 4. Data kosong
+                if (filteredArticles.isEmpty) {
+                  return const Center(
+                    child: Text('Tidak ada berita tersedia.'),
+                  );
+                }
 
                 // 5. Tampilkan daftar berita
                 return ListView.builder(
@@ -233,59 +234,72 @@ class _NewsPageState extends State<NewsPage> {
                   itemBuilder: (context, index) {
                     final article = filteredArticles[index];
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      clipBehavior: Clip.antiAlias,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (article.imageUrl.isNotEmpty)
-                            Image.network(
-                              article.imageUrl,
-                              width: double.infinity,
-                              height: 200,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const SizedBox(
-                                  height: 120,
-                                  child: Center(
-                                    child: Icon(Icons.broken_image, size: 40),
-                                  ),
-                                );
-                              },
-                            ),
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  article.sourceName,
-                                  style: const TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  article.title,
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  article.description.isEmpty
-                                      ? 'Deskripsi tidak tersedia.'
-                                      : article.description,
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
+                    return InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) {
+                              return ArticleDetailPage(article: article);
+                            },
                           ),
-                        ],
+                        );
+                      },
+
+                      child: Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (article.imageUrl.isNotEmpty)
+                              Image.network(
+                                article.imageUrl,
+                                width: double.infinity,
+                                height: 200,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const SizedBox(
+                                    height: 120,
+                                    child: Center(
+                                      child: Icon(Icons.broken_image, size: 40),
+                                    ),
+                                  );
+                                },
+                              ),
+                            Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    article.sourceName,
+                                    style: const TextStyle(
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    article.title,
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    article.description.isEmpty
+                                        ? 'Deskripsi tidak tersedia.'
+                                        : article.description,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
