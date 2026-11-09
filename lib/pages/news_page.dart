@@ -68,6 +68,14 @@ class _NewsPageState extends State<NewsPage> {
     }).toList();
   }
 
+  void _retryFetch() {
+    setState(() {
+      _newsFuture = NewsService().fetchTopHeadlines(
+        category: _selectedCategory,
+      );
+    });
+  }
+
   @override
   void dispose() {
     _searchController.dispose();

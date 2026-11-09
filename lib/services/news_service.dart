@@ -1,9 +1,10 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/article.dart';
 
 class NewsService {
-  static const String _apiKey = 'YOUR_API_KEY';
+  final String apiKey = dotenv.env['NEWS_API_KEY'] ?? '';
 
   Future<List<Article>> fetchTopHeadlines({String category = 'general'}) async {
     //.       | base url  |  endpoint      | query parameters
@@ -27,8 +28,12 @@ class NewsService {
   }
 
   Future<List<Article>> _getArticles(Uri uri) async {
+    if (apiKey.isEmpty) {
+      throw Exception('NEWS API KEY belum diatur. Periksa file .env.');
+    }
+
     // ambil data dari API dgn memasukkan URI dan API key
-    final response = await http.get(uri, headers: {'X-Api-Key': _apiKey});
+    final response = await http.get(uri, headers: {'X-Api-Key': apiKey});
     // ubah data dari JSON ke dalam objek Dart (Map<String, dynamic>)
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     // kalau tidak berhasil (bukan 200) dan statusnya bukan ok
