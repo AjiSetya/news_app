@@ -35,4 +35,18 @@ class Article {
       url: json['url'] ?? '',
     );
   }
+
+  // Mengubah objek Article menjadi format Map (untuk disimpan ke SharedPreferences)
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'description': description,
+      'content': content,
+      'author': author,
+      'urlToImage': imageUrl,
+      'source': {'name': sourceName},
+      'publishedAt': publishedAt,
+      'url': url,
+    };
+  }
 }

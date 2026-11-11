@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/article.dart';
 import '../services/news_service.dart';
 import 'article_detail_page.dart';
+import 'bookmark_page.dart';
 
 class NewsPage extends StatefulWidget {
   const NewsPage({super.key});
@@ -131,6 +132,33 @@ class _NewsPageState extends State<NewsPage> {
                   ),
                 ],
               ),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: IconButton(
+                    tooltip: 'Berita Favorit',
+                    style: IconButton.styleFrom(
+                      backgroundColor: const Color(0xFFF1F3F5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.bookmark_rounded,
+                      color: Colors.blueAccent,
+                      size: 22,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const BookmarkPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
 
             // 2. Panel Kontrol: Search Bar, Kategori, dan Filter Lokal

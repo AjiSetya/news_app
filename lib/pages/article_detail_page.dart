@@ -3,18 +3,60 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/article.dart';
+import '../services/bookmark_service.dart';
 
-class ArticleDetailPage extends StatelessWidget {
+class ArticleDetailPage extends StatefulWidget {
   final Article article;
 
   const ArticleDetailPage({super.key, required this.article});
 
-  // Fungsi untuk membagikan berita ke aplikasi lain / media sosial
-  Future<void> _shareArticle(BuildContext context) async {
-    final title = article.title;
-    final url = article.url;
+  @override
+  State<ArticleDetailPage> createState() => _ArticleDetailPageState();
+}
 
-    // Format teks berita yang akan dibagikan
+class _ArticleDetailPageState extends State<ArticleDetailPage> {
+  final BookmarkService _bookmarkService = BookmarkService();
+  bool _isBookmarked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBookmarkStatus();
+  }
+
+  // Cek apakah artikel sudah tersimpan sebelumnya
+  Future<void> _checkBookmarkStatus() async {
+    final status = await _bookmarkService.isBookmarked(widget.article.url);
+    if (mounted) {
+      setState(() {
+        _isBookmarked = status;
+      });
+    }
+  }
+
+  // Fungsi toggle bookmark (simpan/hapus)
+  Future<void> _toggleBookmark() async {
+    final newStatus = await _bookmarkService.toggleBookmark(widget.article);
+    if (mounted) {
+      setState(() {
+        _isBookmarked = newStatus;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            newStatus ? 'Berita berhasil disimpan' : 'Berita dihapus dari simpanan',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // Fungsi membagikan berita
+  Future<void> _shareArticle(BuildContext context) async {
+    final title = widget.article.title;
+    final url = widget.article.url;
+
     final shareText = url.isNotEmpty
         ? '$title\n\nBaca selengkapnya di: $url'
         : title;
@@ -25,7 +67,6 @@ class ArticleDetailPage extends StatelessWidget {
           ? box.localToGlobal(Offset.zero) & box.size
           : null;
 
-      // Menggunakan SharePlus untuk memanggil menu share bawaan Android/iOS
       await SharePlus.instance.share(
         ShareParams(
           text: shareText,
@@ -44,7 +85,7 @@ class ArticleDetailPage extends StatelessWidget {
 
   // Fungsi membuka link asli di browser
   Future<void> _openOriginalArticle(BuildContext context) async {
-    final uri = Uri.tryParse(article.url);
+    final uri = Uri.tryParse(widget.article.url);
 
     if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -69,14 +110,12 @@ class ArticleDetailPage extends StatelessWidget {
     }
   }
 
-  // Membersihkan tanda batasan karakter NewsAPI (contoh: "... [+1540 chars]")
   String _cleanContent(String rawContent) {
     if (rawContent.isEmpty) return '';
     final regex = RegExp(r'\[\+\d+\s*chars\]');
     return rawContent.replaceAll(regex, '').trim();
   }
 
-  // Format tanggal sederhana agar lebih rapi dibaca siswa
   String _formatDate(String rawDate) {
     if (rawDate.isEmpty) return '';
     try {
@@ -93,15 +132,15 @@ class ArticleDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final article = widget.article;
     final cleanedContent = _cleanContent(article.content);
     final formattedDate = _formatDate(article.publishedAt);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      // Menggunakan CustomScrollView & SliverAppBar agar selaras dengan halaman utama
       body: CustomScrollView(
         slivers: [
-          // 1. Header Gambar dengan Tombol Back & Share Melayang
+          // 1. Header Gambar dengan Tombol Back, Bookmark, dan Share
           SliverAppBar(
             expandedHeight: article.imageUrl.isNotEmpty ? 280 : 0,
             pinned: true,
@@ -119,8 +158,25 @@ class ArticleDetailPage extends StatelessWidget {
               ),
             ),
             actions: [
+              // Tombol Bookmark / Simpan
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                child: CircleAvatar(
+                  backgroundColor: Colors.white.withValues(alpha: 0.9),
+                  child: IconButton(
+                    tooltip: _isBookmarked ? 'Hapus Simpanan' : 'Simpan Berita',
+                    icon: Icon(
+                      _isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                      color: _isBookmarked ? Colors.blueAccent : Colors.black87,
+                      size: 20,
+                    ),
+                    onPressed: _toggleBookmark,
+                  ),
+                ),
+              ),
+              // Tombol Share Berita
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4.0, 8.0, 8.0, 8.0),
                 child: CircleAvatar(
                   backgroundColor: Colors.white.withValues(alpha: 0.9),
                   child: IconButton(
@@ -153,7 +209,7 @@ class ArticleDetailPage extends StatelessWidget {
                 : null,
           ),
 
-          // 2. Isi Detail Berita dalam Card Putih Bersih
+          // 2. Isi Detail Berita
           SliverToBoxAdapter(
             child: Container(
               margin: const EdgeInsets.all(16),
@@ -222,7 +278,7 @@ class ArticleDetailPage extends StatelessWidget {
                     ),
                   ),
 
-                  // Penulis Berita (Author jika ada)
+                  // Penulis Berita (Author)
                   if (article.author.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
@@ -239,7 +295,7 @@ class ArticleDetailPage extends StatelessWidget {
                   const Divider(color: Color(0xFFF1F3F5), thickness: 1.5),
                   const SizedBox(height: 14),
 
-                  // Deskripsi / Ringkasan Berita
+                  // Deskripsi
                   if (article.description.isNotEmpty) ...[
                     Text(
                       article.description,
@@ -253,7 +309,7 @@ class ArticleDetailPage extends StatelessWidget {
                     const SizedBox(height: 16),
                   ],
 
-                  // Konten Lengkap Berita (dari API)
+                  // Konten Lengkap
                   if (cleanedContent.isNotEmpty) ...[
                     Text(
                       cleanedContent,
@@ -266,7 +322,7 @@ class ArticleDetailPage extends StatelessWidget {
                     const SizedBox(height: 20),
                   ],
 
-                  // Info Tambahan Pembatasan API (Edukasi untuk Siswa)
+                  // Catatan Edukatif
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -291,7 +347,7 @@ class ArticleDetailPage extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  // Tombol Aksi: Bagikan Berita & Baca Lengkap di Web
+                  // Tombol Aksi Bawah
                   Row(
                     children: [
                       // Tombol Share Berita
