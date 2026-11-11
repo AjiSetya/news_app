@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/article.dart';
@@ -7,6 +8,39 @@ class ArticleDetailPage extends StatelessWidget {
   final Article article;
 
   const ArticleDetailPage({super.key, required this.article});
+
+  // Fungsi untuk membagikan berita ke aplikasi lain / media sosial
+  Future<void> _shareArticle(BuildContext context) async {
+    final title = article.title;
+    final url = article.url;
+
+    // Format teks berita yang akan dibagikan
+    final shareText = url.isNotEmpty
+        ? '$title\n\nBaca selengkapnya di: $url'
+        : title;
+
+    try {
+      final box = context.findRenderObject() as RenderBox?;
+      final origin = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
+      // Menggunakan SharePlus untuk memanggil menu share bawaan Android/iOS
+      await SharePlus.instance.share(
+        ShareParams(
+          text: shareText,
+          subject: title,
+          sharePositionOrigin: origin,
+        ),
+      );
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal membagikan berita')),
+        );
+      }
+    }
+  }
 
   // Fungsi membuka link asli di browser
   Future<void> _openOriginalArticle(BuildContext context) async {
@@ -67,7 +101,7 @@ class ArticleDetailPage extends StatelessWidget {
       // Menggunakan CustomScrollView & SliverAppBar agar selaras dengan halaman utama
       body: CustomScrollView(
         slivers: [
-          // 1. Header Gambar dengan Tombol Back Melayang
+          // 1. Header Gambar dengan Tombol Back & Share Melayang
           SliverAppBar(
             expandedHeight: article.imageUrl.isNotEmpty ? 280 : 0,
             pinned: true,
@@ -84,6 +118,19 @@ class ArticleDetailPage extends StatelessWidget {
                 ),
               ),
             ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  backgroundColor: Colors.white.withValues(alpha: 0.9),
+                  child: IconButton(
+                    tooltip: 'Bagikan Berita',
+                    icon: const Icon(Icons.share_rounded, color: Colors.black87, size: 20),
+                    onPressed: () => _shareArticle(context),
+                  ),
+                ),
+              ),
+            ],
             flexibleSpace: article.imageUrl.isNotEmpty
                 ? FlexibleSpaceBar(
                     background: Image.network(
@@ -244,24 +291,54 @@ class ArticleDetailPage extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  // Tombol Baca Artikel Asli di Web
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                  // Tombol Aksi: Bagikan Berita & Baca Lengkap di Web
+                  Row(
+                    children: [
+                      // Tombol Share Berita
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.blueAccent,
+                              side: const BorderSide(color: Colors.blueAccent),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () => _shareArticle(context),
+                            icon: const Icon(Icons.share_rounded, size: 18),
+                            label: const Text(
+                              'Bagikan',
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
+                          ),
                         ),
                       ),
-                      onPressed: () => _openOriginalArticle(context),
-                      icon: const Icon(Icons.open_in_browser_rounded, size: 20),
-                      label: const Text(
-                        'Baca Artikel Lengkap di Web',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      const SizedBox(width: 12),
+
+                      // Tombol Baca Artikel Asli di Web
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: 48,
+                          child: FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.blueAccent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () => _openOriginalArticle(context),
+                            icon: const Icon(Icons.open_in_browser_rounded, size: 20),
+                            label: const Text(
+                              'Baca di Web',
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
