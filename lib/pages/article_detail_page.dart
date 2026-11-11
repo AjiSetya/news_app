@@ -385,37 +385,37 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
 
                   const SizedBox(height: 24),
 
-                  // Tombol Aksi Bawah
+                  // Tombol Aksi Bawah: Bagikan & Baca Lengkap di Web
                   Row(
                     children: [
-                      // Tombol Share Berita
-                      Expanded(
-                        child: SizedBox(
-                          height: 48,
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.blueAccent,
-                              side: const BorderSide(color: Colors.blueAccent),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
+                      // Tombol Share Berita berbentuk icon button persegi dengan tooltip
+                      Tooltip(
+                        message: 'Bagikan berita',
+                        child: InkWell(
+                          onTap: () => _shareArticle(context),
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: Colors.blue.shade100),
                             ),
-                            onPressed: () => _shareArticle(context),
-                            icon: const Icon(Icons.share_rounded, size: 18),
-                            label: const Text(
-                              'Bagikan',
-                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            child: Icon(
+                              Icons.share_rounded,
+                              color: Colors.blue.shade700,
+                              size: 22,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
 
-                      // Tombol Baca Artikel Asli di Web
+                      // Tombol Baca Artikel Asli di Web (Utama & Lebar)
                       Expanded(
-                        flex: 2,
                         child: SizedBox(
-                          height: 48,
+                          height: 50,
                           child: FilledButton.icon(
                             style: FilledButton.styleFrom(
                               backgroundColor: Colors.blueAccent,
@@ -426,7 +426,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                             onPressed: () => _openOriginalArticle(context),
                             icon: const Icon(Icons.open_in_browser_rounded, size: 20),
                             label: const Text(
-                              'Baca di Web',
+                              'Baca Artikel di Web',
                               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                             ),
                           ),
@@ -584,19 +584,31 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                 child: item.imageUrl.isNotEmpty
                     ? Image.network(
                         item.imageUrl,
-                        width: 220,
+                        width: double.infinity,
                         height: 110,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
+                          width: double.infinity,
                           height: 110,
-                          color: Colors.grey.shade200,
-                          child: const Icon(Icons.broken_image_rounded, color: Colors.grey),
+                          color: Colors.grey.shade100,
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.broken_image_rounded,
+                            size: 32,
+                            color: Colors.grey.shade400,
+                          ),
                         ),
                       )
                     : Container(
+                        width: double.infinity,
                         height: 110,
                         color: Colors.grey.shade100,
-                        child: const Icon(Icons.newspaper_rounded, color: Colors.grey),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.newspaper_rounded,
+                          size: 36,
+                          color: Colors.grey.shade400,
+                        ),
                       ),
               ),
 
