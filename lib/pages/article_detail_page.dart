@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/article.dart';
 import '../services/bookmark_service.dart';
+import '../services/news_service.dart';
 
 class ArticleDetailPage extends StatefulWidget {
   final Article article;
@@ -16,12 +17,16 @@ class ArticleDetailPage extends StatefulWidget {
 
 class _ArticleDetailPageState extends State<ArticleDetailPage> {
   final BookmarkService _bookmarkService = BookmarkService();
+  final NewsService _newsService = NewsService();
+
   bool _isBookmarked = false;
+  late Future<List<Article>> _relatedNewsFuture;
 
   @override
   void initState() {
     super.initState();
     _checkBookmarkStatus();
+    _fetchRelatedArticles();
   }
 
   // Cek apakah artikel sudah tersimpan sebelumnya
@@ -32,6 +37,39 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
         _isBookmarked = status;
       });
     }
+  }
+
+  // Mengambil berita terkait berdasarkan kata kunci dari judul
+  void _fetchRelatedArticles() {
+    final query = _extractKeyword(widget.article.title);
+    if (query.isNotEmpty) {
+      _relatedNewsFuture = _newsService.searchArticles(query: query);
+    } else {
+      _relatedNewsFuture = _newsService.fetchTopHeadlines();
+    }
+  }
+
+  // Ekstrak kata kunci representatif dari judul artikel (menghindari kata hubung)
+  String _extractKeyword(String title) {
+    const stopWords = {
+      'dan', 'di', 'ke', 'dari', 'yang', 'ini', 'itu', 'untuk', 'dengan',
+      'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'is', 'are', 'with'
+    };
+
+    // Bersihkan karakter selain huruf dan angka
+    final cleanTitle = title.replaceAll(RegExp(r'[^\w\s]'), ' ');
+    final words = cleanTitle
+        .split(' ')
+        .map((w) => w.trim())
+        .where((w) => w.length > 3 && !stopWords.contains(w.toLowerCase()))
+        .toList();
+
+    if (words.isEmpty) {
+      return widget.article.sourceName.split(' ').first;
+    }
+
+    // Ambil 1-2 kata pertama sebagai query pencarian berita terkait
+    return words.take(2).join(' ');
   }
 
   // Fungsi toggle bookmark (simpan/hapus)
@@ -400,7 +438,204 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
               ),
             ),
           ),
+
+          // 3. Bagian Berita Terkait / Serupa
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Berita Terkait',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _buildRelatedNewsSection(),
+                ],
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  // Widget untuk merender daftar berita terkait secara horizontal / kartu modern
+  Widget _buildRelatedNewsSection() {
+    return FutureBuilder<List<Article>>(
+      future: _relatedNewsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 160,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Center(
+              child: Text(
+                'Tidak dapat memuat berita terkait',
+                style: TextStyle(color: Colors.black54, fontSize: 13),
+              ),
+            ),
+          );
+        }
+
+        // Filter: Jangan tampilkan artikel yang sedang dibaca sekarang
+        final allArticles = snapshot.data ?? [];
+        final relatedList = allArticles
+            .where((item) => item.url != widget.article.url && item.title != widget.article.title)
+            .take(6)
+            .toList();
+
+        if (relatedList.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Center(
+              child: Text(
+                'Tidak ada berita terkait lainnya saat ini.',
+                style: TextStyle(color: Colors.black54, fontSize: 13),
+              ),
+            ),
+          );
+        }
+
+        return SizedBox(
+          height: 230,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: relatedList.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final relatedArticle = relatedList[index];
+
+              return _buildRelatedCard(context, relatedArticle);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  // Kartu Berita Terkait Horizontal
+  Widget _buildRelatedCard(BuildContext context, Article item) {
+    return Container(
+      width: 220,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            // Membuka halaman detail baru untuk artikel terkait
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ArticleDetailPage(article: item),
+              ),
+            );
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Gambar thumbnail
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                child: item.imageUrl.isNotEmpty
+                    ? Image.network(
+                        item.imageUrl,
+                        width: 220,
+                        height: 110,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 110,
+                          color: Colors.grey.shade200,
+                          child: const Icon(Icons.broken_image_rounded, color: Colors.grey),
+                        ),
+                      )
+                    : Container(
+                        height: 110,
+                        color: Colors.grey.shade100,
+                        child: const Icon(Icons.newspaper_rounded, color: Colors.grey),
+                      ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Badge Sumber
+                    Text(
+                      item.sourceName,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+
+                    // Judul Artikel Terkait
+                    Text(
+                      item.title,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                        color: Color(0xFF1E293B),
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
