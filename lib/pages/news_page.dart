@@ -16,6 +16,10 @@ class _NewsPageState extends State<NewsPage> {
   // Service untuk mengambil data berita dari API
   final NewsService _newsService = NewsService();
 
+  // ScrollController untuk mengontrol perpindahan scroll dan memantau posisi
+  final ScrollController _scrollController = ScrollController();
+  bool _showBackToTop = false;
+
   // Future untuk menampung data asynchronous artikel
   late Future<List<Article>> _newsFuture;
 
@@ -45,13 +49,33 @@ class _NewsPageState extends State<NewsPage> {
     super.initState();
     // Memuat berita utama pertama kali
     _fetchNewsByCategory(_selectedCategory);
+
+    // Pantau pergerakan scroll untuk memunculkan tombol 'Kembali ke Atas'
+    _scrollController.addListener(() {
+      final shouldShow = _scrollController.offset > 250;
+      if (shouldShow != _showBackToTop) {
+        setState(() {
+          _showBackToTop = shouldShow;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _searchController.dispose();
     _localFilterController.dispose();
     super.dispose();
+  }
+
+  // Fungsi melompat kembali ke bagian paling atas
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   // Fungsi memuat berita berdasarkan kategori
@@ -107,6 +131,7 @@ class _NewsPageState extends State<NewsPage> {
       // NestedScrollView memungkinkan bagian atas (Header) menyusut/hilang
       // saat daftar berita di bagian body di-scroll ke bawah.
       body: NestedScrollView(
+        controller: _scrollController,
         headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
           return [
             // 1. AppBar utama yang otomatis sembunyi saat scroll
@@ -378,6 +403,26 @@ class _NewsPageState extends State<NewsPage> {
                 },
               );
             },
+          ),
+        ),
+      ),
+      // Tombol melompat kembali ke atas (muncul otomatis saat discroll ke bawah)
+      floatingActionButton: AnimatedSlide(
+        duration: const Duration(milliseconds: 250),
+        offset: _showBackToTop ? Offset.zero : const Offset(0, 2),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 250),
+          opacity: _showBackToTop ? 1.0 : 0.0,
+          child: FloatingActionButton.extended(
+            onPressed: _showBackToTop ? _scrollToTop : null,
+            backgroundColor: Colors.blueAccent,
+            foregroundColor: Colors.white,
+            elevation: 3,
+            icon: const Icon(Icons.arrow_upward_rounded, size: 20),
+            label: const Text(
+              'Ke Atas',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
           ),
         ),
       ),
